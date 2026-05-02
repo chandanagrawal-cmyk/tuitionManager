@@ -22,6 +22,27 @@ def _primary_guest(student) -> tuple[str | None, str, bool]:
     return None, 'Parent', False
 
 
+def _format_reminders(overrides):
+    if not overrides: return ""
+    lines = []
+    for o in sorted(overrides, key=lambda x: x['minutes'], reverse=True):
+        mins = o['minutes']
+        if mins >= 1440:
+            days = mins // 1440
+            lines.append(f"{days} day{'s' if days > 1 else ''} in advance")
+        elif mins >= 60:
+            hours = mins // 60
+            lines.append(f"{hours} hour{'s' if hours > 1 else ''} in advance")
+        else:
+            lines.append(f"{mins} minute{'s' if mins > 1 else ''} in advance")
+    
+    if len(lines) == 1:
+        return f"🔔 You will be reminded {lines[0]}.\n"
+    
+    reminders_str = ", then ".join(lines[:-1]) + f" and then {lines[-1]}"
+    return f"🔔 You will be reminded {len(lines)} times: first {reminders_str}.\n"
+
+
 def _event_body(student, date, time: str, teacher_name: str = None, notes: str = None, guest_email: str = None, parent_name: str = 'Parent'):
     start_dt = datetime.datetime.combine(date, datetime.time.fromisoformat(time))
     end_dt = start_dt + datetime.timedelta(hours=1)
@@ -37,6 +58,12 @@ def _event_body(student, date, time: str, teacher_name: str = None, notes: str =
         f"📚 Subject: {subject}\n"
         f"👨🏫 Teacher: {teacher}\n"
     )
+    overrides = [
+        {"method": "popup", "minutes": 30},
+        {"method": "popup", "minutes": 2880},  # 2 days
+    ]
+    description += f"\n{_format_reminders(overrides)}"
+
     if notes:
         description += f"\n📝 Notes: {notes}\n"
     description += f"\nKind regards,\n{teacher}"
@@ -47,10 +74,7 @@ def _event_body(student, date, time: str, teacher_name: str = None, notes: str =
         "end": {"dateTime": end_dt.isoformat(), "timeZone": "Europe/London"},
         "reminders": {
             "useDefault": False,
-            "overrides": [
-                {"method": "popup", "minutes": 30},
-                {"method": "popup", "minutes": 2880},  # 2 days
-            ],
+            "overrides": overrides,
         },
     }
     if guest_email:
@@ -81,6 +105,12 @@ def create_recurring_event(student, start_date, time: str, day_of_week: int, end
         f"👨🏫 Teacher: {teacher}\n"
         f"🗓️ Starting: {start_date.strftime('%d %B %Y')}\n"
     )
+    overrides = [
+        {"method": "popup", "minutes": 30},
+        {"method": "popup", "minutes": 2880},  # 2 days
+    ]
+    description += f"\n{_format_reminders(overrides)}"
+
     if end_date:
         description += f"⏹️ Until: {end_date.strftime('%d %B %Y')}\n"
     if notes:
@@ -94,10 +124,7 @@ def create_recurring_event(student, start_date, time: str, day_of_week: int, end
         "recurrence": [rrule],
         "reminders": {
             "useDefault": False,
-            "overrides": [
-                {"method": "popup", "minutes": 30},
-                {"method": "popup", "minutes": 2880},  # 2 days
-            ],
+            "overrides": overrides,
         },
     }
     if guest_email:

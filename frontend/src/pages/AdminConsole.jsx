@@ -16,7 +16,7 @@ const ROLE_LABELS = {
 const initials = name => name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '?'
 const COLORS = ['#7c3aed','#ec4899','#0d9488','#f59e0b','#3b82f6','#10b981','#f97316','#8b5cf6']
 
-const emptyForm = { username: '', password: '', full_name: '', role: 'teacher' }
+const emptyForm = { username: '', password: '', email: '', full_name: '', role: 'teacher' }
 
 export default function AdminConsole() {
   const { user: me } = useAuth()
@@ -37,7 +37,7 @@ export default function AdminConsole() {
   useEffect(() => { load() }, [])
 
   const openAdd = () => { setForm(emptyForm); setModal('add') }
-  const openEdit = u => { setForm({ username: u.username, password: '', full_name: u.full_name || '', role: u.role }); setModal(u) }
+  const openEdit = u => { setForm({ username: u.username, password: '', email: u.email || '', full_name: u.full_name || '', role: u.role }); setModal(u) }
 
   const save = async e => {
     e.preventDefault(); setSaving(true)
@@ -46,7 +46,7 @@ export default function AdminConsole() {
         await api.post('/auth/users', form)
         toast.success('👤 User created!')
       } else {
-        const payload = { role: form.role, full_name: form.full_name || null, is_active: modal.is_active }
+        const payload = { role: form.role, full_name: form.full_name || null, email: form.email || null, is_active: modal.is_active }
         if (form.password) payload.password = form.password
         await api.put(`/auth/users/${modal.id}`, payload)
         toast.success('✅ User updated!')
@@ -106,6 +106,7 @@ export default function AdminConsole() {
                       <div>
                         <div style={{ fontWeight: 800 }}>{u.full_name || u.username}</div>
                         <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>@{u.username}{u.id === me.id ? ' · You' : ''}</div>
+                        {u.email && <div style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 600 }}>{u.email}</div>}
                       </div>
                     </div>
                   </td>
@@ -182,6 +183,10 @@ export default function AdminConsole() {
               <div className="form-group">
                 <label>🙋 Full Name</label>
                 <input value={form.full_name} onChange={set('full_name')} placeholder="e.g. John Smith" />
+              </div>
+              <div className="form-group">
+                <label>📧 Email Address</label>
+                <input type="email" value={form.email} onChange={set('email')} placeholder="e.g. john@example.com" />
               </div>
               <div className="form-group">
                 <label>🔒 Password {modal !== 'add' && <span style={{ fontWeight: 500, opacity: 0.6 }}>(leave blank to keep current)</span>}</label>

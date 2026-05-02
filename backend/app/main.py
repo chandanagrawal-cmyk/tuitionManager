@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.api import auth, parents, students, sessions, payments, lump_sum_payments, calendar, whatsapp
+from app.services.scheduler import start_scheduler
 import threading, time
 
 import app.models.whatsapp_session
@@ -43,6 +44,7 @@ async def lifespan(app):
     seed()
     t = threading.Thread(target=_rsvp_poller, daemon=True)
     t.start()
+    start_scheduler()
     yield
 
 app = FastAPI(title='Tuition Manager', lifespan=lifespan)
