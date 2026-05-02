@@ -44,7 +44,13 @@ def list_users(db: Session = Depends(get_db), _: User = Depends(require_role(Rol
 def create_user(data: UserCreate, db: Session = Depends(get_db), _: User = Depends(require_role(Role.admin))):
     if db.query(User).filter(User.username == data.username.lower()).first():
         raise HTTPException(400, "Username already exists")
-    user = User(username=data.username.lower(), hashed_password=hash_password(data.password), role=data.role, full_name=data.full_name)
+    user = User(
+        username=data.username.lower(),
+        hashed_password=hash_password(data.password),
+        role=data.role,
+        full_name=data.full_name,
+        email=data.email
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -62,6 +68,8 @@ def update_user(user_id: int, data: UserUpdate, db: Session = Depends(get_db), c
         user.hashed_password = hash_password(data.password)
     if data.full_name is not None:
         user.full_name = data.full_name
+    if data.email is not None:
+        user.email = data.email
     if data.role is not None:
         user.role = data.role
     if data.is_active is not None:
