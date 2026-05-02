@@ -77,6 +77,22 @@ export default function Reports() {
   })
   const earningsChart = Object.entries(monthlyEarnings).map(([k, v]) => ({ month: MONTHS[parseInt(k.slice(5,7))-1], amount: Math.round(v) }))
 
+  // Cumulative Revenue
+  let cumSum = 0
+  const cumulativeRevenue = Object.entries(monthlyEarnings).map(([k, v]) => {
+    cumSum += v
+    return { month: MONTHS[parseInt(k.slice(5,7))-1], total: Math.round(cumSum) }
+  })
+
+  // Projected Revenue
+  const projectedRev = pending.reduce((s, p) => s + p.amount, 0)
+
+  // Revenue Growth % (MoM)
+  const growthValues = Object.values(monthlyEarnings)
+  const lastMonthVal = growthValues[growthValues.length - 1]
+  const prevMonthVal = growthValues[growthValues.length - 2]
+  const momGrowth = prevMonthVal > 0 ? Math.round(((lastMonthVal - prevMonthVal) / prevMonthVal) * 100) : 0
+
   // Revenue by student
   const revenueByStudent = students.map((st, i) => {
     const stPay = received.filter(p => { const se = sessionMap[p.session_id]; return se?.student_id === st.id })
@@ -94,6 +110,16 @@ export default function Reports() {
   const byDay = Array(7).fill(0)
   sessions.forEach(s => { const d = new Date(s.date + 'T00:00:00').getDay(); byDay[d === 0 ? 6 : d - 1]++ })
   const dayChart = DAYS.map((d, i) => ({ day: d, sessions: byDay[i] }))
+
+  // Peak Hours
+  const hourlySessions = {}
+  sessions.forEach(s => {
+    const hour = s.time.split(':')[0]
+    hourlySessions[hour] = (hourlySessions[hour] || 0) + 1
+  })
+  const peakHoursChart = Object.entries(hourlySessions)
+    .map(([h, v]) => ({ hour: `${h}:00`, sessions: v }))
+    .sort((a, b) => parseInt(a.hour) - parseInt(b.hour))
 
   // Sessions per month — last 12
   const monthlySessions = { ...monthlyEarnings }
@@ -131,6 +157,16 @@ export default function Reports() {
   const topStudent = revenueByStudent[0]
   const cancellationRate = sessions.length ? Math.round((cancelled.length / sessions.length) * 100) : 0
   const collectionRate = (received.length + pending.length) > 0 ? Math.round((received.length / (received.length + pending.length)) * 100) : 0
+
+  // Collection Speed
+  const paidWithDates = received.filter(p => p.received_date)
+  const avgDaysToPay = paidWithDates.length > 0
+    ? Math.round(paidWithDates.reduce((sum, p) => {
+        const se = sessionMap[p.session_id]; if (!se) return sum
+        const diff = (new Date(p.received_date) - new Date(se.date)) / (1000 * 60 * 60 * 24)
+        return sum + Math.max(0, diff)
+      }, 0) / paidWithDates.length)
+    : 0
 
   const tabs = [
     { id: 'financial', label: '💰 Financial' },
@@ -182,6 +218,17 @@ export default function Reports() {
                 {earningsChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>
             </BarChart>
+          </ResponsiveContainer>
+        </Section>
+
+        <Section title="🌊 Cumulative Revenue Trend">
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={cumulativeRevenue} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+              <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => `£${v}`} />
+              <Tooltip formatter={v => [`£${v}`, 'Total']} contentStyle={{ borderRadius: 12, border: 'none', fontWeight: 700 }} />
+              <Line type="monotone" dataKey="total" stroke="#ec4899" strokeWidth={4} dot={{ r: 4, fill: '#ec4899' }} />
+            </LineChart>
           </ResponsiveContainer>
         </Section>
 
@@ -241,18 +288,31 @@ export default function Reports() {
           </Section>
         </div>
 
-        <Section title="📆 Busiest Days of the Week">
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={dayChart} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-              <XAxis dataKey="day" tick={{ fontSize: 12, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontWeight: 700 }} />
-              <Bar dataKey="sessions" radius={[6,6,0,0]}>
-                {dayChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </Section>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <Section title="📆 Busiest Days of the Week">
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={dayChart} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                <XAxis dataKey="day" tick={{ fontSize: 12, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontWeight: 700 }} />
+                <Bar dataKey="sessions" radius={[6,6,0,0]}>
+                  {dayChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Section>
+
+          <Section title="⏰ Peak Session Hours">
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={peakHoursChart} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                <XAxis dataKey="hour" tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontWeight: 700 }} />
+                <Bar dataKey="sessions" fill="#0d9488" radius={[6,6,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Section>
+        </div>
       </>}
 
       {/* ── STUDENTS ── */}
@@ -325,6 +385,27 @@ export default function Reports() {
       {/* ── INSIGHTS ── */}
       {tab === 'insights' && <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+
+          <div className="card" style={{ borderLeft: '4px solid #7c3aed' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💰</div>
+            <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e1b4b', marginBottom: '0.25rem' }}>Projected Revenue</div>
+            <div style={{ fontWeight: 900, fontSize: '1.8rem', color: '#7c3aed' }}>£{projectedRev.toFixed(0)}</div>
+            <div style={{ fontSize: '0.82rem', color: '#9ca3af', fontWeight: 600 }}>Expected from {pending.length} pending payments</div>
+          </div>
+
+          <div className="card" style={{ borderLeft: '4px solid #10b981' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📈</div>
+            <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e1b4b', marginBottom: '0.25rem' }}>Monthly Growth</div>
+            <div style={{ fontWeight: 900, fontSize: '1.8rem', color: '#10b981' }}>{momGrowth > 0 ? '+' : ''}{momGrowth}%</div>
+            <div style={{ fontSize: '0.82rem', color: '#9ca3af', fontWeight: 600 }}>MoM revenue change</div>
+          </div>
+
+          <div className="card" style={{ borderLeft: '4px solid #3b82f6' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⏱️</div>
+            <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e1b4b', marginBottom: '0.25rem' }}>Collection Speed</div>
+            <div style={{ fontWeight: 900, fontSize: '1.8rem', color: '#3b82f6' }}>{avgDaysToPay} Days</div>
+            <div style={{ fontSize: '0.82rem', color: '#9ca3af', fontWeight: 600 }}>Avg time from session to payment</div>
+          </div>
 
           <div className="card" style={{ borderLeft: '4px solid #7c3aed' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔥</div>
