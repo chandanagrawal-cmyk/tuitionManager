@@ -68,6 +68,17 @@ export default function AdminConsole() {
     setConfirm({ message: `Delete user "${u.username}"? This cannot be undone.`, onConfirm: async () => { await api.delete(`/auth/users/${u.id}`); toast.success('🗑️ User deleted'); load() } })
   }
 
+  const sendSummary = async u => {
+    if (!u.email) return toast.error("User has no email address")
+    const loading = toast.loading(`Sending schedule to ${u.username}…`)
+    try {
+      await api.post(`/auth/users/${u.id}/send-summary`)
+      toast.success(`📨 Schedule sent to ${u.email}`, { id: loading })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to send email", { id: loading })
+    }
+  }
+
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
   return (
@@ -120,9 +131,10 @@ export default function AdminConsole() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
-                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(u)}>✏️ Edit</button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => toggleActive(u)}>{u.is_active ? '🔒' : '✅'}</button>
-                      {u.id !== me.id && <button className="btn btn-danger btn-sm" onClick={() => del(u)}>🗑️</button>}
+                      <button className="btn btn-secondary btn-sm" onClick={() => openEdit(u)} title="Edit User">✏️ Edit</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => sendSummary(u)} title="Send Daily Schedule" disabled={!u.email}>📨</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => toggleActive(u)} title={u.is_active ? 'Deactivate' : 'Activate'}>{u.is_active ? '🔒' : '✅'}</button>
+                      {u.id !== me.id && <button className="btn btn-danger btn-sm" onClick={() => del(u)} title="Delete User">🗑️</button>}
                     </div>
                   </td>
                 </tr>

@@ -88,3 +88,18 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current: User = Dep
         raise HTTPException(400, "Cannot delete your own account")
     db.delete(user)
     db.commit()
+
+
+@router.post("/users/{user_id}/send-summary")
+def trigger_user_summary(user_id: int, db: Session = Depends(get_db), _: User = Depends(require_role(Role.admin))):
+    from app.services.scheduler import send_user_summary
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(404, "User not found")
+    if not user.email:
+        raise HTTPException(400, "User has no email address configured")
+    
+    success, message = send_user_summary(user, db)
+    if not success:
+        raise HTTPException(500, message)
+    return {"message": message}
