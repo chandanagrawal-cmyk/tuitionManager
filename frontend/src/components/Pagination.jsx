@@ -14,10 +14,11 @@ export default function Pagination({
 
   return (
     <div className="pagination-container" style={{
-      display: 'flex',
-      justifyContent: 'space-between',
+      display: 'grid',
+      gridTemplateColumns: '1fr auto',
       alignItems: 'center',
       padding: '1rem',
+      width: '100%',
       background: 'var(--glass)',
       backdropFilter: 'blur(12px)',
       borderTop: '1px solid var(--glass-border)',
@@ -26,7 +27,7 @@ export default function Pagination({
       flexWrap: 'wrap',
       gap: '1rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifySelf: 'start' }}>
         <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6b7280' }}>
           Show
         </span>
@@ -53,12 +54,12 @@ export default function Pagination({
         </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifySelf: 'end' }}>
         <button 
           className="btn btn-secondary btn-sm" 
           onClick={prevPage} 
           disabled={currentPage === 1}
-          style={{ opacity: currentPage === 1 ? 0.5 : 1 }}
+          style={{ opacity: currentPage === 1 ? 0.5 : 1, justifyContent: 'center' }}
         >
           Previous
         </button>
@@ -78,7 +79,7 @@ export default function Pagination({
                   key={page}
                   className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => goToPage(page)}
-                  style={{ minWidth: '2rem', padding: '0.3rem' }}
+                  style={{ minWidth: '2rem', padding: '0.3rem', justifyContent: 'center' }}
                 >
                   {page}
                 </button>
@@ -97,7 +98,7 @@ export default function Pagination({
           className="btn btn-secondary btn-sm" 
           onClick={nextPage} 
           disabled={currentPage === totalPages}
-          style={{ opacity: currentPage === totalPages ? 0.5 : 1 }}
+          style={{ opacity: currentPage === totalPages ? 0.5 : 1, justifyContent: 'center' }}
         >
           Next
         </button>

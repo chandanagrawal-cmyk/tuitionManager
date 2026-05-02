@@ -8,6 +8,7 @@ class LumpSumPayment(Base):
     id = Column(Integer, primary_key=True)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     amount = Column(Float, nullable=False)
+    allocated_amount = Column(Float, default=0.0, nullable=False)
     payment_date = Column(Date, nullable=False)
     status = Column(Enum(PaymentStatus), default=PaymentStatus.received)
     notes = Column(String)

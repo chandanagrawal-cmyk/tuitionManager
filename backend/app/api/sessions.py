@@ -58,8 +58,9 @@ def create_series(data: SeriesCreate, db: DBSession = Depends(get_db), current_u
     series = SessionSeries(**data.model_dump(exclude={'teacher_id'}))
     db.add(series)
     db.flush()
+    teacher_id = data.teacher_id or current_user.id
     for d in _generate_series_dates(series):
-        db.add(Session(student_id=student.id, series_id=series.id, date=d, time=series.time, notes=series.notes, teacher_id=data.teacher_id))
+        db.add(Session(student_id=student.id, series_id=series.id, date=d, time=series.time, notes=series.notes, teacher_id=teacher_id))
     db.commit()
     # Send a single recurring calendar invite instead of one per session
     try:
@@ -112,8 +113,9 @@ def update_series(series_id: int, data: SeriesUpdate, db: DBSession = Depends(ge
     for k, v in data.model_dump(exclude_unset=True).items():
         setattr(series, k, v)
     db.flush()
+    teacher_id = data.teacher_id or series.teacher_id or current_user.id
     for d in _generate_series_dates(series, from_date=Date.today()):
-        db.add(Session(student_id=student.id, series_id=series.id, date=d, time=series.time, notes=series.notes))
+        db.add(Session(student_id=student.id, series_id=series.id, date=d, time=series.time, notes=series.notes, teacher_id=teacher_id))
     db.commit()
     try:
         for s in db.query(Session).filter(Session.series_id == series.id, Session.date >= today).all():

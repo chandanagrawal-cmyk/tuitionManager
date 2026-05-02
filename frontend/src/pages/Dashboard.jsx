@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
-import { fmtDateWithDay, fmtTime } from '../utils/dates'
+import { fmtDateWithDay, fmtTime, getLocalDate ,fmtCurrency } from '../utils/dates'
 import { Avatar } from '../components/Avatar'
 import { SkeletonRow } from '../components/Skeleton'
 import useCountUp from '../hooks/useCountUp'
@@ -53,7 +53,7 @@ export default function Dashboard() {
       api.get('/payments?status=pending'),
       api.get('/payments'),
     ]).then(([p, s, sess, pendingPay, allPay]) => {
-      const today = new Date().toISOString().slice(0, 10)
+      const today = getLocalDate()
       const map = Object.fromEntries(s.data.map(st => [st.id, st]))
       setStudentMap(map)
 
@@ -196,8 +196,8 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
               <XAxis dataKey="month" tick={{ fontSize: 12, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => `£${v}`} />
-              <Tooltip formatter={v => [`£${v}`, 'Received']} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(124,58,237,0.15)', fontWeight: 700 }} />
+              <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => fmtCurrency(v)} />
+              <Tooltip formatter={v => [fmtCurrency(v), 'Received']} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(124,58,237,0.15)', fontWeight: 700 }} />
               <Bar dataKey="amount" radius={[6,6,0,0]}>
                 {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>

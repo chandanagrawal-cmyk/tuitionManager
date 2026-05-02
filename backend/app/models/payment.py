@@ -15,4 +15,5 @@ class Payment(Base):
     status = Column(Enum(PaymentStatus), default=PaymentStatus.pending)
     received_date = Column(Date, nullable=True)
     notes = Column(String)
+    lump_sum_id = Column(Integer, ForeignKey("lump_sum_payments.id", ondelete="SET NULL"), nullable=True)
     session = relationship("Session", back_populates="payment")

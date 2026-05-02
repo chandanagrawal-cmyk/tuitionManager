@@ -12,12 +12,9 @@ def send_user_summary(user: User, db: Session):
     sessions = db.query(TutorSession).filter(
         TutorSession.teacher_id == user.id,
         TutorSession.date == today,
-        TutorSession.status == SessionStatus.scheduled
+        TutorSession.status.in_([SessionStatus.scheduled, SessionStatus.completed])
     ).order_by(TutorSession.time).all()
     
-    if not sessions:
-        return False, "No sessions scheduled for today."
-        
     subject = f"📚 Your Tuition Sessions for Today ({today.strftime('%A, %d %b')})"
     
     html = f"""
@@ -28,21 +25,39 @@ def send_user_summary(user: User, db: Session):
         <div style="margin: 20px 0;">
     """
     
-    for s in sessions:
-        student_name = s.student.name if s.student else "Unknown Student"
-        html += f"""
-        <div style="padding: 12px; border-left: 4px solid #7c3aed; background: #f9fafb; margin-bottom: 10px; border-radius: 0 8px 8px 0;">
-            <div style="font-weight: bold; font-size: 1.1rem; color: #111827;">{s.time} — {student_name}</div>
-            <div style="font-size: 0.9rem; color: #6b7280; margin-top: 4px;">Subject: {s.student.subject if s.student else 'Studies'}</div>
-            {f'<div style="font-size: 0.85rem; color: #374151; font-style: italic; margin-top: 4px;">Notes: {s.notes}</div>' if s.notes else ''}
+    if not sessions:
+        html += """
+        <div style="padding: 20px; text-align: center; background: #f3f4f6; border-radius: 8px; color: #4b5563; border: 1px dashed #d1d5db;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">☕</div>
+            <b>No sessions scheduled for today.</b><br/>
+            Enjoy your free time or use it to catch up on prep!
         </div>
         """
+    else:
+        for s in sessions:
+            student_name = s.student.name if s.student else "Unknown Student"
+            status_label = ""
+            border_color = "#7c3aed"
+            bg_color = "#f9fafb"
+            
+            if s.status == SessionStatus.completed:
+                status_label = '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; margin-left: 10px;">COMPLETED</span>'
+                border_color = "#10b981"
+                bg_color = "#f0fdf4"
+
+            html += f"""
+            <div style="padding: 12px; border-left: 4px solid {border_color}; background: {bg_color}; margin-bottom: 10px; border-radius: 0 8px 8px 0;">
+                <div style="font-weight: bold; font-size: 1.1rem; color: #111827;">{s.time} — {student_name} {status_label}</div>
+                <div style="font-size: 0.9rem; color: #6b7280; margin-top: 4px;">Subject: {s.student.subject if s.student else 'Studies'}</div>
+                {f'<div style="font-size: 0.85rem; color: #374151; font-style: italic; margin-top: 4px;">Notes: {s.notes}</div>' if s.notes else ''}
+            </div>
+            """
         
     html += """
         </div>
         <p style="font-size: 0.8rem; color: #9ca3af; margin-top: 30px;">
             Have a great day teaching! 🎓<br/>
-            <i>TuitionManager Bot</i>
+            <i>Tuition Manager</i>
         </p>
     </body>
     </html>

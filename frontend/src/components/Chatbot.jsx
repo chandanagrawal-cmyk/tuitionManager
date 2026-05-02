@@ -49,9 +49,9 @@ async function answer(q) {
     const lines = pending.map(p => {
       const sess = sessionMap[p.session_id]
       const st = sess ? studentMap[sess.student_id] : null
-      return `• ${st?.name || 'Unknown'} — £${p.amount.toFixed(2)} (session ${sess ? fmt(sess.date) : '?'})`
+      return `• ${st?.name || 'Unknown'} — ${fmtCurrency(p.amount)} (session ${sess ? fmt(sess.date) : '?'})`
     })
-    return `⏳ ${pending.length} unpaid payment${pending.length > 1 ? 's' : ''}:\n${lines.join('\n')}\n\nTotal outstanding: £${pending.reduce((s,p)=>s+p.amount,0).toFixed(2)}`
+    return `⏳ ${pending.length} unpaid payment${pending.length > 1 ? 's' : ''}:\n${lines.join('\n')}\n\nTotal outstanding: ${fmtCurrency(pending.reduce((s,p)=>s+p.amount,0))}`
   }
 
   // ── TODAY ──
@@ -81,7 +81,7 @@ async function answer(q) {
       const sess = sessionMap[p.session_id]
       return sess && sess.date >= ms && sess.date <= me
     })
-    return `💰 Earnings summary:\n• Total received: £${received.reduce((s,p)=>s+p.amount,0).toFixed(2)}\n• This month: £${thisMonth.reduce((s,p)=>s+p.amount,0).toFixed(2)}\n• Still pending: £${pending.reduce((s,p)=>s+p.amount,0).toFixed(2)}`
+    return `💰 Earnings summary:\n• Total received: ${fmtCurrency(received.reduce((s,p)=>s+p.amount,0))}\n• This month: ${fmtCurrency(thisMonth.reduce((s,p)=>s+p.amount,0))}\n• Still pending: ${fmtCurrency(pending.reduce((s,p)=>s+p.amount,0))}`
   }
 
   // ── LIST STUDENTS ──
@@ -110,7 +110,7 @@ async function answer(q) {
       return sess && sess.student_id === st.id
     })
     const pendingPay = stPayments.filter(p => p.status === 'pending')
-    return `🎓 ${st.name}:\n• Subject: ${st.subject || 'Not set'}\n• Schedule: ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][st.default_day]}s at ${st.default_time}\n• Fee: £${st.fee_per_session}/session\n• Upcoming sessions: ${upcoming.length}\n• Completed sessions: ${completed.length}\n• Pending payments: £${pendingPay.reduce((s,p)=>s+p.amount,0).toFixed(2)}`
+    return `🎓 ${st.name}:\n• Subject: ${st.subject || 'Not set'}\n• Schedule: ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][st.default_day]}s at ${st.default_time}\n• Fee: £${st.fee_per_session}/session\n• Upcoming sessions: ${upcoming.length}\n• Completed sessions: ${completed.length}\n• Pending payments: ${fmtCurrency(pendingPay.reduce((s,p)=>s+p.amount,0))}`
   }
 
   // ── NEXT SESSION ──
@@ -125,7 +125,7 @@ async function answer(q) {
   if (text.match(/summary|overview|stats|how many|count/)) {
     const pending = payments.filter(p => p.status === 'pending')
     const upcoming = sessions.filter(s => s.status === 'scheduled' && s.date >= todayStr())
-    return `📊 Quick summary:\n• 👨👩👧 ${parents.length} families\n• 🎓 ${students.length} students\n• 📅 ${upcoming.length} upcoming sessions\n• 💰 £${pending.reduce((s,p)=>s+p.amount,0).toFixed(2)} pending payments`
+    return `📊 Quick summary:\n• 👨👩👧 ${parents.length} families\n• 🎓 ${students.length} students\n• 📅 ${upcoming.length} upcoming sessions\n• 💰 ${fmtCurrency(pending.reduce((s,p)=>s+p.amount,0))} pending payments`
   }
 
   // ── HELP ──

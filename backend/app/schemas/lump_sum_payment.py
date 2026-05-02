@@ -18,6 +18,7 @@ class LumpSumOut(BaseModel):
     id: int
     student_id: int
     amount: float
+    allocated_amount: float
     payment_date: date
     status: PaymentStatus
     notes: str | None = None

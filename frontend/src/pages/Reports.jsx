@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineCh
 import api from '../api/client'
 import { Avatar } from '../components/Avatar'
 import { SkeletonCard } from '../components/Skeleton'
+import { getLocalDate ,fmtCurrency } from '../utils/dates'
 
 const COLORS = ['#7c3aed','#ec4899','#0d9488','#f59e0b','#3b82f6','#10b981','#f97316','#8b5cf6']
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -103,7 +104,7 @@ export default function Reports() {
   const completed = sessions.filter(s => s.status === 'completed')
   const cancelled = sessions.filter(s => s.status === 'cancelled')
   const scheduled = sessions.filter(s => s.status === 'scheduled')
-  const today = new Date().toISOString().slice(0, 10)
+  const today = getLocalDate()
   const upcoming = scheduled.filter(s => s.date >= today)
 
   // Sessions by day of week
@@ -197,9 +198,9 @@ export default function Reports() {
       {tab === 'financial' && <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
           {[
-            { icon: '✅', label: 'Total Received', value: `£${totalReceived.toFixed(0)}`, sub: `${received.length + lumpSums.length} payments`, color: '#10b981' },
-            { icon: '⏳', label: 'Outstanding', value: `£${totalPending.toFixed(0)}`, sub: `${pending.length} unpaid`, color: '#f59e0b' },
-            { icon: '📈', label: 'Avg per Session', value: `£${avgPerSession.toFixed(0)}`, sub: 'received sessions', color: '#7c3aed' },
+            { icon: '✅', label: 'Total Received', value: `${fmtCurrency(totalReceived)}`, sub: `${received.length + lumpSums.length} payments`, color: '#10b981' },
+            { icon: '⏳', label: 'Outstanding', value: `${fmtCurrency(totalPending)}`, sub: `${pending.length} unpaid`, color: '#f59e0b' },
+            { icon: '📈', label: 'Avg per Session', value: `${fmtCurrency(avgPerSession)}`, sub: 'received sessions', color: '#7c3aed' },
             { icon: '💳', label: 'Collection Rate', value: `${collectionRate}%`, sub: 'payments received', color: '#0d9488' },
           ].map(k => (
             <div key={k.label} className="card" style={{ padding: '0.5rem' }}>
@@ -212,8 +213,8 @@ export default function Reports() {
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={earningsChart} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
               <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => `£${v}`} />
-              <Tooltip formatter={v => [`£${v}`, 'Earned']} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(124,58,237,0.15)', fontWeight: 700 }} />
+              <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => fmtCurrency(v)} />
+              <Tooltip formatter={v => [fmtCurrency(v), 'Earned']} contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 20px rgba(124,58,237,0.15)', fontWeight: 700 }} />
               <Bar dataKey="amount" radius={[6,6,0,0]}>
                 {earningsChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>
@@ -225,8 +226,8 @@ export default function Reports() {
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={cumulativeRevenue} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
               <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => `£${v}`} />
-              <Tooltip formatter={v => [`£${v}`, 'Total']} contentStyle={{ borderRadius: 12, border: 'none', fontWeight: 700 }} />
+              <YAxis tick={{ fontSize: 11, fontWeight: 700, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => fmtCurrency(v)} />
+              <Tooltip formatter={v => [fmtCurrency(v), 'Total']} contentStyle={{ borderRadius: 12, border: 'none', fontWeight: 700 }} />
               <Line type="monotone" dataKey="total" stroke="#ec4899" strokeWidth={4} dot={{ r: 4, fill: '#ec4899' }} />
             </LineChart>
           </ResponsiveContainer>
@@ -241,7 +242,7 @@ export default function Reports() {
                 <div style={{ flex: 1, background: 'rgba(124,58,237,0.08)', borderRadius: 999, height: 10, overflow: 'hidden' }}>
                   <div style={{ width: `${revenueByStudent[0].amount ? (st.amount / revenueByStudent[0].amount) * 100 : 0}%`, height: '100%', background: COLORS[i % COLORS.length], borderRadius: 999, transition: 'width 0.8s ease' }} />
                 </div>
-                <div style={{ fontWeight: 900, color: '#0d9488', width: 60, textAlign: 'right', fontSize: '0.9rem' }}>£{st.amount}</div>
+                <div style={{ fontWeight: 900, color: '#0d9488', width: 60, textAlign: 'right', fontSize: '0.9rem' }}>{fmtCurrency(st.amount)}</div>
               </div>
             ))}
           </div>
@@ -371,7 +372,7 @@ export default function Reports() {
                     </td>
                     <td>
                       {st.outstanding > 0
-                        ? <span style={{ fontWeight: 800, color: '#f59e0b' }}>£{st.outstanding.toFixed(2)}</span>
+                        ? <span style={{ fontWeight: 800, color: '#f59e0b' }}>{fmtCurrency(st.outstanding)}</span>
                         : <span style={{ color: '#10b981', fontWeight: 700 }}>✅ Clear</span>}
                     </td>
                   </tr>
@@ -389,7 +390,7 @@ export default function Reports() {
           <div className="card" style={{ borderLeft: '4px solid #7c3aed' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💰</div>
             <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e1b4b', marginBottom: '0.25rem' }}>Projected Revenue</div>
-            <div style={{ fontWeight: 900, fontSize: '1.8rem', color: '#7c3aed' }}>£{projectedRev.toFixed(0)}</div>
+            <div style={{ fontWeight: 900, fontSize: '1.8rem', color: '#7c3aed' }}>{fmtCurrency(projectedRev)}</div>
             <div style={{ fontSize: '0.82rem', color: '#9ca3af', fontWeight: 600 }}>Expected from {pending.length} pending payments</div>
           </div>
 
@@ -418,7 +419,7 @@ export default function Reports() {
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏆</div>
             <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e1b4b', marginBottom: '0.25rem' }}>Top Earning Student</div>
             <div style={{ fontWeight: 900, fontSize: '1.8rem', color: '#10b981' }}>{topStudent?.name || '—'}</div>
-            <div style={{ fontSize: '0.82rem', color: '#9ca3af', fontWeight: 600 }}>£{topStudent?.amount || 0} received to date</div>
+            <div style={{ fontSize: '0.82rem', color: '#9ca3af', fontWeight: 600 }}>{fmtCurrency(topStudent?.amount || 0)} received to date</div>
           </div>
 
           <div className="card" style={{ borderLeft: '4px solid #f59e0b' }}>
@@ -438,7 +439,7 @@ export default function Reports() {
           <div className="card" style={{ borderLeft: '4px solid #ec4899' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📈</div>
             <div style={{ fontWeight: 900, fontSize: '1rem', color: '#1e1b4b', marginBottom: '0.25rem' }}>Avg Session Value</div>
-            <div style={{ fontWeight: 900, fontSize: '1.8rem', color: '#ec4899' }}>£{avgPerSession.toFixed(2)}</div>
+            <div style={{ fontWeight: 900, fontSize: '1.8rem', color: '#ec4899' }}>{fmtCurrency(avgPerSession)}</div>
             <div style={{ fontSize: '0.82rem', color: '#9ca3af', fontWeight: 600 }}>across {received.length} received payments</div>
           </div>
 

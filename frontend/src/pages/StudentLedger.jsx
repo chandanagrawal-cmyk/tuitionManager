@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import toast from 'react-hot-toast'
-import { fmtDateShort, fmtDateWithDay, fmtTime } from '../utils/dates'
+import { fmtDateShort, fmtDateWithDay, fmtTime, fmtCurrency } from '../utils/dates'
 import { Avatar } from '../components/Avatar'
 
 function StatCard({ emoji, label, value, color }) {
@@ -96,12 +96,13 @@ export default function StudentLedger() {
       })
     })
     lumpSums.forEach(l => {
+      const unallocated = Math.max(0, l.amount - (l.allocated_amount || 0))
       rows.push({
         date: l.payment_date,
         type: 'lump',
         label: l.notes || 'Lump sum payment',
         billed: 0,
-        received: l.amount,
+        received: unallocated,
         lump: l,
       })
     })
@@ -124,7 +125,7 @@ export default function StudentLedger() {
           <Avatar avatar={student.avatar} name={student.name} index={studentIdx} size={40} />
           <div>
             <h1 style={{ margin: 0 }}>{student.name}</h1>
-            <div style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 700 }}>{student.subject || 'No subject'} · £{student.fee_per_session.toFixed(2)}/session</div>
+            <div style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 700 }}>{student.subject || 'No subject'} · {fmtCurrency(student.fee_per_session)}/session</div>
           </div>
         </div>
         <button className="btn btn-primary" onClick={openAddLump}>+ Lump Sum</button>
@@ -132,9 +133,9 @@ export default function StudentLedger() {
 
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        <StatCard emoji="📋" label="Total Billed" value={`£${totalBilled.toFixed(2)}`} color="#7c3aed" />
-        <StatCard emoji="✅" label="Total Received" value={`£${totalReceived.toFixed(2)}`} color="#10b981" />
-        <StatCard emoji={outstanding > 0 ? '⏳' : '🎉'} label="Outstanding" value={`£${outstanding.toFixed(2)}`} color={outstanding > 0 ? '#f59e0b' : '#10b981'} />
+        <StatCard emoji="📋" label="Total Billed" value={fmtCurrency(totalBilled)} color="#7c3aed" />
+        <StatCard emoji="✅" label="Total Received" value={fmtCurrency(totalReceived)} color="#10b981" />
+        <StatCard emoji={outstanding > 0 ? '⏳' : '🎉'} label="Outstanding" value={fmtCurrency(outstanding)} color={outstanding > 0 ? '#f59e0b' : '#10b981'} />
       </div>
 
       {/* Timeline */}
@@ -170,11 +171,11 @@ export default function StudentLedger() {
                           {isLump && <span style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488', borderRadius: 999, padding: '0.1rem 0.5rem', fontSize: '0.65rem', fontWeight: 800 }}>lump sum</span>}
                         </div>
                       </td>
-                      <td style={{ fontWeight: 700, color: '#ef4444' }}>{row.billed > 0 ? `£${row.billed.toFixed(2)}` : '—'}</td>
-                      <td style={{ fontWeight: 700, color: '#10b981' }}>{row.received > 0 ? `£${row.received.toFixed(2)}` : '—'}</td>
+                      <td style={{ fontWeight: 700, color: '#ef4444' }}>{row.billed > 0 ? fmtCurrency(row.billed) : '—'}</td>
+                      <td style={{ fontWeight: 700, color: '#10b981' }}>{row.received > 0 ? fmtCurrency(row.received) : '—'}</td>
                       <td>
                         <span style={{ fontWeight: 900, color: running < 0 ? '#f59e0b' : '#10b981' }}>
-                          {running < 0 ? `-£${Math.abs(running).toFixed(2)}` : running === 0 ? '£0.00' : `+£${running.toFixed(2)}`}
+                          {running < 0 ? `-${fmtCurrency(Math.abs(running))}` : running === 0 ? '£0.00' : `+${fmtCurrency(running)}`}
                         </span>
                       </td>
                       <td>

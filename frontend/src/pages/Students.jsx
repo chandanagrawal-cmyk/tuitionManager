@@ -13,6 +13,8 @@ import { SkeletonRow } from '../components/Skeleton'
 import useKeyboard from '../hooks/useKeyboard'
 import LoadingOverlay from '../components/LoadingOverlay'
 
+import { fmtCurrency } from '../utils/dates'
+
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 const RELATIONSHIPS = ['Mother','Father','Sister','Brother','Guardian','Other']
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -34,6 +36,7 @@ export default function Students() {
   const [loading, setLoading] = useState(true)
   const [sessionCounts, setSessionCounts] = useState({})
   const [pendingBalances, setPendingBalances] = useState({})
+  const [lumpCredits, setLumpCredits] = useState({})
 
   useKeyboard({ Escape: () => { setStudentModal(null); setGuardianModal(null) }, n: () => { setStudentForm(emptyStudent); setStudentModal('add') } })
 
@@ -41,12 +44,11 @@ export default function Students() {
   const { sortKey, sortDir, toggle, search, setSearch } = useSort([], 'name', 'asc')
 
   const load = () => Promise.all([
-    api.get('/students'), api.get('/parents'), api.get('/sessions'), api.get('/payments')
-  ]).then(([s, p, sess, pay]) => {
+    api.get('/students'), api.get('/parents'), api.get('/sessions'), api.get('/payments'), api.get('/lump-sum-payments')
+  ]).then(([s, p, sess, pay, lumps]) => {
     setStudents(s.data.slice().sort((a,b) => a.name.localeCompare(b.name)))
     setParents(p.data.slice().sort((a,b) => a.name.localeCompare(b.name)))
-    // attendance rate & outstanding balance per student
-    const counts = {}; const balances = {}
+    const counts = {}; const balances = {}; const credits = {}
     s.data.forEach(st => {
       const stSess = sess.data.filter(se => se.student_id === st.id)
       const total = stSess.length
@@ -57,8 +59,11 @@ export default function Students() {
         return se?.student_id === st.id && pa.status === 'pending'
       })
       balances[st.id] = stPay.reduce((sum, pa) => sum + pa.amount, 0)
+      credits[st.id] = lumps.data
+        .filter(l => l.student_id === st.id)
+        .reduce((sum, l) => sum + Math.max(0, l.amount - (l.allocated_amount || 0)), 0)
     })
-    setSessionCounts(counts); setPendingBalances(balances); setLoading(false)
+    setSessionCounts(counts); setPendingBalances(balances); setLumpCredits(credits); setLoading(false)
   })
   useEffect(() => { load() }, [])
 
@@ -210,7 +215,7 @@ export default function Students() {
                         {(s.birth_month && s.birth_year) && <div style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>{MONTHS[s.birth_month - 1]} {s.birth_year}</div>}
                       </td>
                       <td><span style={{ fontWeight: 700 }}>{DAYS[s.default_day]}</span> at {s.default_time}</td>
-                      <td><span style={{ fontWeight: 800, color: '#0d9488' }}>£{s.fee_per_session.toFixed(2)}</span></td>
+                      <td><span style={{ fontWeight: 800, color: '#0d9488' }}>{fmtCurrency(s.fee_per_session)}</span></td>
                       <td>
                         {sessionCounts[s.id] !== null && sessionCounts[s.id] !== undefined ? (
                           <span style={{
@@ -221,9 +226,26 @@ export default function Students() {
                         ) : <span style={{ color: '#d1d5db' }}>—</span>}
                       </td>
                       <td>
-                        {pendingBalances[s.id] > 0
-                          ? <span style={{ fontWeight: 800, color: '#f59e0b' }}>£{pendingBalances[s.id].toFixed(2)}</span>
-                          : <span style={{ color: '#10b981', fontWeight: 700 }}>✅ Clear</span>}
+                        {(() => {
+                          const pending = pendingBalances[s.id] || 0
+                          const credit = lumpCredits[s.id] || 0
+                          const net = pending - credit
+                          if (pending === 0 && credit === 0)
+                            return <span style={{ color: '#10b981', fontWeight: 700 }}>✅ Clear</span>
+                          if (credit >= pending)
+                            return (
+                              <div>
+                                <span style={{ color: '#10b981', fontWeight: 700 }}>✅ Covered</span>
+                                {credit > pending && <div style={{ fontSize: '0.75rem', color: '#d97706', fontWeight: 700 }}>{fmtCurrency((credit - pending))} credit left</div>}
+                              </div>
+                            )
+                          return (
+                            <div>
+                              <span style={{ fontWeight: 800, color: '#f59e0b' }}>{fmtCurrency(net)}</span>
+                              {credit > 0 && <div style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 700 }}>{fmtCurrency(credit)} credit held</div>}
+                            </div>
+                          )
+                        })()}
                       </td>
                       <td>
                         <button 

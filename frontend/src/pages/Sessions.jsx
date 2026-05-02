@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import api from '../api/client'
 import toast from 'react-hot-toast'
-import { fmtDateWithDay, fmtTime } from '../utils/dates'
+import { fmtDateWithDay, fmtTime, getLocalDate } from '../utils/dates'
 import { useSort, SortTh, SearchBar } from '../hooks/useSort'
 import { usePagination } from '../hooks/usePagination'
 import Pagination from '../components/Pagination'
@@ -50,7 +50,14 @@ function startOfWeek(d) {
   return dt
 }
 function addDays(d, n) { const dt = new Date(d); dt.setDate(dt.getDate() + n); return dt }
-function toYMD(d) { return d.toISOString().slice(0,10) }
+function toYMD(d) { 
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/London',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d)
+}
 function daysInMonth(year, month) { return new Date(year, month+1, 0).getDate() }
 function firstDayOfMonth(year, month) {
   const d = new Date(year, month, 1).getDay()
@@ -61,12 +68,13 @@ function firstDayOfMonth(year, month) {
 function WeekView({ sessions, students, weekStart, onSessionClick, onDayClick }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const studentMap = Object.fromEntries(students.map(s => [s.id, s.name]))
+  const todayYMD = getLocalDate()
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
       {days.map((day, i) => {
         const ymd = toYMD(day)
-        const isToday = ymd === toYMD(new Date())
+        const isToday = ymd === todayYMD
         const daySessions = sessions.filter(s => s.date === ymd).sort((a,b) => a.time.localeCompare(b.time))
         return (
           <div key={i} style={{
@@ -118,7 +126,7 @@ function MonthView({ sessions, students, year, month, onSessionClick, onDayClick
   const totalDays = daysInMonth(year, month)
   const cells = Array.from({ length: firstDay + totalDays }, (_, i) => i < firstDay ? null : i - firstDay + 1)
   while (cells.length % 7 !== 0) cells.push(null)
-  const today = toYMD(new Date())
+  const today = getLocalDate()
   const [popup, setPopup] = useState(null) // { ymd, sessions }
 
   return (
@@ -221,8 +229,14 @@ export default function Sessions() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [view, setView] = useState('list') // list | week | month
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
-  const [calMonth, setCalMonth] = useState(() => ({ year: new Date().getFullYear(), month: new Date().getMonth() }))
+  const [weekStart, setWeekStart] = useState(() => {
+    const now = new Date(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/London' }).format(new Date()));
+    return startOfWeek(now);
+  })
+  const [calMonth, setCalMonth] = useState(() => {
+    const now = new Date(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/London' }).format(new Date()));
+    return { year: now.getFullYear(), month: now.getMonth() };
+  })
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState({ student_id: '', date: '', time: '16:00', notes: '', teacher_id: '' })
   const [addTab, setAddTab] = useState('single')

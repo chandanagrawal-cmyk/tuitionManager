@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     SMTP_USER: str | None = None
     SMTP_PASSWORD: str | None = None
     SMTP_FROM: str | None = None
+    SMTP_NOREPLY_FROM: str | None = None
+    SMTP_ENCRYPTION: str = "tls"  # tls, ssl, or none
 
     class Config:
         env_file = ".env"
